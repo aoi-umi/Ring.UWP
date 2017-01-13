@@ -21,7 +21,13 @@
             <RowDefinition/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <StackPanel Orientation="Horizontal" Padding="5">
+        <Grid Name="Mask" Visibility="Collapsed" Grid.RowSpan="10" Grid.ColumnSpan="10" Canvas.ZIndex="50">
+            <Grid.Background>
+                <SolidColorBrush Color="Black" Opacity=".6"/>
+            </Grid.Background>
+            <ProgressBar IsIndeterminate="True"/>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Padding="5" Background="{ThemeResource ThemeColor}">
             <Button Content="&#xE25A;" Click="OpenPicker_Click" Style="{StaticResource NavButton}"/>
             <TextBlock Name="TipsView" Text="{Binding Tips,ElementName=page}"/>
         </StackPanel>
@@ -73,7 +79,7 @@
                                Value="{Binding Position, Converter={StaticResource TimeToSecondsConverter}, ElementName=MediaEle, Mode=TwoWay}"/>
             <TextBlock Text="{Binding Position,ElementName=MediaEle,Converter={StaticResource TimeStringFormatConverter}}" 
                        HorizontalAlignment="Right"/>
-            <MediaElement Name="MediaEle" AutoPlay="False"/>
+            <MediaElement Name="MediaEle" AutoPlay="False" Visibility="Collapsed"/>
             <Grid>
                 <Grid.Resources>
                     <Style TargetType="Button">
