@@ -52,7 +52,10 @@ namespace Rings.UWP
         }
 
         public delegate void RangeBaseValueChangedEventHandler(object sender, RangeBaseValueChangedEventArgs e);
+        public event RangeBaseValueChangedEventHandler RangeMaxChanged;
+        public event RangeBaseValueChangedEventHandler RangeMinChanged;
         public event RangeBaseValueChangedEventHandler ValueChanged;
+        public event RangeBaseValueChangedEventHandler RangeValueChanged;
 
         public bool IsDragging { get { return ValueThumb == null ? false : ValueThumb.IsDragging; } }        
 
@@ -109,7 +112,7 @@ namespace Rings.UWP
             DependencyProperty.Register("Value", typeof(double), typeof(RangeSlider), new PropertyMetadata(0.0, OnValuePropertyChanged));
 
         public static readonly DependencyProperty RangeValueProperty =
-            DependencyProperty.Register("RangeValue", typeof(double), typeof(RangeSlider), new PropertyMetadata(0.0));
+            DependencyProperty.Register("RangeValue", typeof(double), typeof(RangeSlider), new PropertyMetadata(0.0, OnRangeValueChanged));
         #endregion
 
         #region OnPropertyChanged
@@ -127,6 +130,7 @@ namespace Rings.UWP
             var newValue = (double)e.NewValue;
             if (ele.RangeMax > newValue) ele.RangeMax = newValue;
             else ele.UpdateMaxThumb(ele.RangeMax);
+            ele.OnRangeMaxChanged(new RangeBaseValueChangedEventArgs((double)e.OldValue, (double)e.NewValue));
         }
 
         private static void OnRangeMinPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -154,7 +158,8 @@ namespace Rings.UWP
             }
 
             ele.UpdateMinThumb(ele.RangeMin);
-            ele.RangeValue = ele.RangeMax - ele.RangeMin;            
+            ele.RangeValue = ele.RangeMax - ele.RangeMin;
+            ele.OnRangeMinChanged(new RangeBaseValueChangedEventArgs((double)e.OldValue, (double)e.NewValue));
         }
 
         private static void OnRangeMaxPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -193,11 +198,32 @@ namespace Rings.UWP
             ele.UpdateValueThumb(ele.Value);
             ele.OnValueChanged(new RangeBaseValueChangedEventArgs((double)e.OldValue, (double)e.NewValue));
         }
+
+        private static void OnRangeValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var ele = (RangeSlider)d;
+            ele.OnRangeValueChanged(new RangeBaseValueChangedEventArgs((double)e.OldValue, (double)e.NewValue));
+        }
         #endregion
+
+        virtual protected void OnRangeMaxChanged(RangeBaseValueChangedEventArgs e)
+        {
+            RangeMaxChanged?.Invoke(this, e);
+        }
+
+        virtual protected void OnRangeMinChanged(RangeBaseValueChangedEventArgs e)
+        {
+            RangeMinChanged?.Invoke(this, e);
+        }
 
         virtual protected void OnValueChanged(RangeBaseValueChangedEventArgs e)
         {
-            ValueChanged(this, e);
+            ValueChanged?.Invoke(this, e);
+        }
+
+        virtual protected void OnRangeValueChanged(RangeBaseValueChangedEventArgs e)
+        {
+            RangeValueChanged?.Invoke(this, e);
         }
 
         public void UpdateMinThumb(double min, bool update = false)

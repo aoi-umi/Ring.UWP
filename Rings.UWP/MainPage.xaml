@@ -31,6 +31,7 @@
             <Button Content="&#xE25A;" Click="OpenPicker_Click" Style="{StaticResource NavButton}"/>
             <TextBlock Name="TipsView" Text="{Binding Tips,ElementName=page}"/>
         </StackPanel>
+        <TextBlock Name="NoDataTextView" Text="" Grid.Row="1" HorizontalAlignment="Center" TextWrapping="Wrap" Opacity=".6" Canvas.ZIndex="-1"/>
         <ListView Name="FileListView" Grid.Row="1" ItemClick="FileListView_ItemClick" IsItemClickEnabled="True" Padding="5">
             <ListView.ItemTemplate>
                 <DataTemplate>
@@ -50,6 +51,9 @@
                 <TextBlock Text="{Binding RangeValue}"/>
                 <TextBlock Text="进度: "/>
                 <TextBlock Text="{Binding Value}"/>
+                <TextBlock Text="预估大小:"/>
+                <TextBlock Text="{Binding FileSize,ElementName=page}"/>
+                <TextBlock Text="M"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" DataContext="StartPoint">
                 <TextBlock Text="起始点"/>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,17 +45,20 @@ namespace Rings.UWP
                 new RingToneSaveModel() { Text = "保存为铃声" ,Type = RingToneSaveType.SaveAsTone },
                 new RingToneSaveModel() { Text = "仅保存" ,Type = RingToneSaveType.SaveOnly },
             };
+            NoDataTextView.Text = ringRequirement;
             StartPointComboBox.ItemsSource = EndPointComboBox.ItemsSource = timeList;
             SaveTypeView.ItemsSource = saveModelList;
             SaveTypeView.SelectedIndex = StartPointComboBox.SelectedIndex = EndPointComboBox.SelectedIndex = 0;
             RangeSliderView.ValueChanged += RangeSliderView_ValueChanged;
+            RangeSliderView.RangeValueChanged += RangeSliderView_RangeValueChanged;
             MediaEle.MediaOpened += MediaEle_MediaOpened;
         }
 
+        string ringRequirement = "文件类型必须为 MP3 或 WMA。\r\n文件大小必须小于 1 MB。\r\n文件播放的时长必须小于 40 秒。\r\n文件不得具有数字版权管理(DRM) 保护。";
         private List<TimeModel> timeList;
         private List<RingToneSaveModel> saveModelList;
         private MediaComposition composition;
-
+        private double totalFileSize = 0;
         public string Tips
         {
             get { return (string)GetValue(TipsProperty); }
@@ -78,9 +82,19 @@ namespace Rings.UWP
         public static readonly DependencyProperty TipsProperty =
             DependencyProperty.Register(nameof(Tips), typeof(string), typeof(MainPage), new PropertyMetadata(null));
 
+        public double FileSize
+        {
+            get { return (double)GetValue(FileSizeProperty); }
+            set { SetValue(FileSizeProperty, value); }
+        }
+        
+        public static readonly DependencyProperty FileSizeProperty =
+            DependencyProperty.Register(nameof(FileSize), typeof(double), typeof(MainPage), new PropertyMetadata(0.0));
+
 
         private void OpenPicker_Click(object sender, RoutedEventArgs e)
         {
+            if (NoDataTextView.Visibility == Visibility.Visible) NoDataTextView.Visibility = Visibility.Collapsed;
             SetList();
         }
 
@@ -116,6 +130,7 @@ namespace Rings.UWP
             return Folder;
         }
 
+        #region event
         private void MediaEle_MediaOpened(object sender, RoutedEventArgs e)
         {
             RangeSliderView.Maximum = MediaEle.NaturalDuration.TimeSpan.TotalSeconds;
@@ -134,6 +149,8 @@ namespace Rings.UWP
             var stream = await file.OpenAsync(FileAccessMode.Read);
             MediaEle.SetSource(stream, file.ContentType);
             RangeSliderView.Value = RangeSliderView.RangeMin = 0;
+            var prop = await file.GetBasicPropertiesAsync();
+            totalFileSize = (double)prop.Size / 1024 / 1024;
         }
 
         private void PlayButton_Click(object sender, RoutedEventArgs e)
@@ -204,12 +221,19 @@ namespace Rings.UWP
                 Tips = ex.Message;
             }
         }
+        
+        private void RangeSliderView_RangeValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (totalFileSize == 0 || RangeSliderView.RangeValue == 0) FileSize = 0;
+            else FileSize = Math.Round(totalFileSize * (RangeSliderView.RangeValue / (RangeSliderView.Maximum - RangeSliderView.Minimum)), 2);
+        }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             Tips = "";
             Save();
         }
+        #endregion
 
         private async void Save()
         {
@@ -235,7 +259,7 @@ namespace Rings.UWP
                 switch (saveType)
                 {
                     case RingToneSaveType.SaveAsTone:
-                        saveFile = await KnownFolders.MusicLibrary.CreateFileAsync(filename + ".ring.uwp" + ext, CreationCollisionOption.ReplaceExisting);
+                        saveFile = await KnownFolders.MusicLibrary.CreateFileAsync(filename + ".rings.uwp" + ext, CreationCollisionOption.ReplaceExisting);
                         break;
                     case RingToneSaveType.SaveOnly:
                         filename += DateTime.Now.ToString("_yyyyMMddHHmmss");
@@ -468,6 +492,19 @@ namespace Rings.UWP
         public object ConvertBack(object value, Type targetType, object parameter, string language)
         {
             return null;
+        }
+    }
+
+    class ShowIfNoDataConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            return ((int)value) == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
         }
     }
     #endregion

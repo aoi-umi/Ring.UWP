@@ -26,6 +26,7 @@
             <local:SecondsToTimeConverter x:Key="SecondsToTimeConverter"/>
             <local:PlayContentConverter x:Key="PlayContentConverter"/>
             <local:TimeStringFormatConverter x:Key="TimeStringFormatConverter"/>
+            <local:ShowIfNoDataConverter x:Key="ShowIfNoDataConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
