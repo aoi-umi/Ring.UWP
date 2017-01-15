@@ -11,9 +11,11 @@ using Windows.Media.Core;
 using Windows.Media.Editing;
 using Windows.Media.MediaProperties;
 using Windows.Media.Playback;
+using Windows.Media.Transcoding;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
+using Windows.System.Profile;
 using Windows.UI.Core;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
@@ -58,6 +60,8 @@ namespace Rings.UWP
         private List<TimeModel> timeList;
         private List<RingToneSaveModel> saveModelList;
         private MediaComposition composition;
+        private IReadOnlyList<StorageFile> currentFileList;
+        private StorageFile editingFile;
         private double totalFileSize = 0;
         public string Tips
         {
@@ -101,10 +105,10 @@ namespace Rings.UWP
         private async void SetList()
         {
 
-            var list = await GetFileList();
-            if (list != null)
+            currentFileList = await GetFileList();
+            if (currentFileList != null)
             {
-                FileListView.ItemsSource = list;
+                FileListView.ItemsSource = currentFileList;
             }
         }
 
@@ -146,6 +150,7 @@ namespace Rings.UWP
         private async void FileListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             var file = e.ClickedItem as StorageFile;
+            editingFile = file;
             var stream = await file.OpenAsync(FileAccessMode.Read);
             MediaEle.SetSource(stream, file.ContentType);
             RangeSliderView.Value = RangeSliderView.RangeMin = 0;
@@ -192,26 +197,34 @@ namespace Rings.UWP
                     switch (ele.DataContext.ToString())
                     {
                         case "StartPoint":
-                            model = StartPointComboBox.SelectedItem as TimeModel;
-                            if (model != null) value = model.Value;
-                            if (content == "-") value = -value;
-                            if (RangeSliderView.RangeMin + value > RangeSliderView.Maximum)
-                                RangeSliderView.RangeMin = RangeSliderView.Maximum;
-                            else if (RangeSliderView.RangeMin + value < RangeSliderView.Minimum)
-                                RangeSliderView.RangeMin = RangeSliderView.Minimum;
+                            if (content == "当前值") RangeSliderView.RangeMin = RangeSliderView.Value;
                             else
+                            {
+                                model = StartPointComboBox.SelectedItem as TimeModel;
+                                if (model != null) value = model.Value;
+                                if (content == "-") value = -value;
+                                //if (RangeSliderView.RangeMin + value > RangeSliderView.Maximum)
+                                //    RangeSliderView.RangeMin = RangeSliderView.Maximum;
+                                //else if (RangeSliderView.RangeMin + value < RangeSliderView.Minimum)
+                                //    RangeSliderView.RangeMin = RangeSliderView.Minimum;
+                                //else
                                 RangeSliderView.RangeMin += value;
+                            }
                             break;
                         case "EndPoint":
-                            model = EndPointComboBox.SelectedItem as TimeModel;
-                            if (model != null) value = model.Value;
-                            if (content == "-") value = -value;
-                            if (RangeSliderView.RangeMax + value > RangeSliderView.Maximum)
-                                RangeSliderView.RangeMax = RangeSliderView.Maximum;
-                            else if (RangeSliderView.RangeMax + value < RangeSliderView.Minimum)
-                                RangeSliderView.RangeMax = RangeSliderView.Minimum;
+                            if (content == "当前值") RangeSliderView.RangeMax = RangeSliderView.Value;
                             else
+                            {
+                                model = EndPointComboBox.SelectedItem as TimeModel;
+                                if (model != null) value = model.Value;
+                                if (content == "-") value = -value;
+                                //if (RangeSliderView.RangeMax + value > RangeSliderView.Maximum)
+                                //    RangeSliderView.RangeMax = RangeSliderView.Maximum;
+                                //else if (RangeSliderView.RangeMax + value < RangeSliderView.Minimum)
+                                //    RangeSliderView.RangeMax = RangeSliderView.Minimum;
+                                //else
                                 RangeSliderView.RangeMax += value;
+                            }
                             break;
                     }
                 }
@@ -233,13 +246,41 @@ namespace Rings.UWP
             Tips = "";
             Save();
         }
+
+        private void Toggle_Click(object sender, RoutedEventArgs e)
+        {
+            var ele = sender as ContentControl;
+            if (!Double.IsNaN(EditView.Height))
+            {
+                ele.Content = "\xE0E5";
+                EditView.Height = Double.NaN;
+            }
+            else
+            {
+                ele.Content = "\xE0E4";
+                EditView.Height = 32;
+            }
+        }
+
+        private void Search_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var str = SearchView.Text.ToLower().Trim();
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                FileListView.ItemsSource = currentFileList;
+            }
+            else
+            {
+                FileListView.ItemsSource = currentFileList == null ? currentFileList : currentFileList.Where(x => x.Name.ToLower().Contains(str));
+            }
+        }
         #endregion
 
         private async void Save()
         {
             try
             {
-                var file = FileListView.SelectedItem as StorageFile;
+                var file = editingFile;
                 if (file == null) throw new Exception("未选择文件或文件无效");
                 if (RangeSliderView.RangeMin == RangeSliderView.RangeMax) throw new Exception("请选择范围");
                 composition.Clips.Clear();
@@ -279,10 +320,13 @@ namespace Rings.UWP
                     //empty the file
                     await FileIO.WriteBytesAsync(saveFile, new byte[] { });
                     //Save to file using original encoding profile
-                    //encodingProfile
-                    var result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise);
+                    TranscodeFailureReason result;
+                    if (AnalyticsInfo.VersionInfo.DeviceFamily == "Windows.Desktop")
+                         result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise, encodingProfile);
+                    else
+                        result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise);
 
-                    if (result == Windows.Media.Transcoding.TranscodeFailureReason.None)
+                    if (result == TranscodeFailureReason.None)
                     {
                         switch (saveType)
                         {

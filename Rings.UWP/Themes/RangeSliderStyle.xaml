@@ -19,7 +19,7 @@
                         <Grid.Resources>
                             <Style TargetType="Thumb" x:Key="SliderThumbStyle">
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Background" Value="{ThemeResource SliderThumbBackground}"/>
+                                <Setter Property="Background" Value="{ThemeResource ThemeColor}"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Thumb">
@@ -29,12 +29,12 @@
                                 </Setter>
                             </Style>
                         </Grid.Resources>
-                        <Rectangle x:Name="TotalRectangle" Height="4" Fill="#FFD5D5D5" RadiusX="5" RadiusY="5"/>
+                        <Rectangle x:Name="TotalRectangle" Height="4" Fill="White" RadiusX="5" RadiusY="5"/>
                         <Canvas x:Name="ContainerCanvas" VerticalAlignment="Center" Height="24">
                             <Thumb x:Name="MinThumb" Width="8" Height="24" Style="{StaticResource SliderThumbStyle}"/>
                             <Thumb x:Name="MaxThumb" Width="8" Height="24" Style="{StaticResource SliderThumbStyle}" Canvas.ZIndex="10"/>
-                            <Thumb x:Name="ValueThumb" Width="8" Height="24" Style="{StaticResource SliderThumbStyle}" Canvas.ZIndex="5" Background="#FF69A0CC"/>
-                            <Rectangle x:Name="ActiveRectangle" Height="4" Canvas.Top="10" Canvas.ZIndex="-1" Fill="#FF69A0CC" />
+                            <Thumb x:Name="ValueThumb" Width="8" Height="24" Style="{StaticResource SliderThumbStyle}" Canvas.ZIndex="5" Background="{ThemeResource SliderThumbBackground}"/>
+                            <Rectangle x:Name="ActiveRectangle" IsHitTestVisible="False" Height="5" Canvas.Top="10" Canvas.ZIndex="-1" Fill="{ThemeResource ThemeColor}" />
                         </Canvas>
                     </Grid>
                 </ControlTemplate>

@@ -15,7 +15,10 @@
             <Setter Property="Margin" Value="5"/>
         </Style>
     </Page.Resources>
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid>
+        <Grid.Background>
+            <SolidColorBrush Color="Gray" Opacity=".6"/>
+        </Grid.Background>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition/>
@@ -27,9 +30,12 @@
             </Grid.Background>
             <ProgressBar IsIndeterminate="True"/>
         </Grid>
-        <StackPanel Orientation="Horizontal" Padding="5" Background="{ThemeResource ThemeColor}">
-            <Button Content="&#xE25A;" Click="OpenPicker_Click" Style="{StaticResource NavButton}"/>
-            <TextBlock Name="TipsView" Text="{Binding Tips,ElementName=page}"/>
+        <StackPanel Padding="5" Background="{ThemeResource ThemeColor}">
+            <StackPanel Orientation="Horizontal" Margin="2">
+                <Button Content="&#xE25A;" Click="OpenPicker_Click" Style="{StaticResource NavButton}"/>
+                <TextBlock Name="TipsView" Text="{Binding Tips,ElementName=page}"/>
+            </StackPanel>
+            <TextBox Name="SearchView" Margin="2" Padding="3 3 0 0" PlaceholderText="搜索" TextChanged="Search_TextChanged"/>
         </StackPanel>
         <TextBlock Name="NoDataTextView" Text="" Grid.Row="1" HorizontalAlignment="Center" TextWrapping="Wrap" Opacity=".6" Canvas.ZIndex="-1"/>
         <ListView Name="FileListView" Grid.Row="1" ItemClick="FileListView_ItemClick" IsItemClickEnabled="True" Padding="5">
@@ -41,24 +47,24 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <StackPanel Grid.Row="2" Background="{ThemeResource ThemeColor}" Padding="5">
+        <StackPanel Name="EditView" Grid.Row="2" Height="32" Background="{ThemeResource ThemeColor}" Padding="5">
+            <Button Content="&#xE0E4;" Template="{StaticResource VerticalToggleTemplate}" HorizontalAlignment="Stretch" Click="Toggle_Click"/>
             <StackPanel Orientation="Horizontal" DataContext="{Binding ElementName=RangeSliderView}">
                 <TextBlock Text="范围: "/>
-                <TextBlock Text="{Binding RangeMin}"/>
-                <TextBlock Text=" - "/>
-                <TextBlock Text="{Binding RangeMax}"/>
+                <TextBlock Text="{Binding RangeMin}" Margin="0"/>
+                <TextBlock Text="-"/>
+                <TextBlock Text="{Binding RangeMax}" Margin="0"/>
                 <TextBlock Text="时长: "/>
-                <TextBlock Text="{Binding RangeValue}"/>
-                <TextBlock Text="进度: "/>
-                <TextBlock Text="{Binding Value}"/>
+                <TextBlock Text="{Binding RangeValue}" Margin="0"/>
                 <TextBlock Text="预估大小:"/>
-                <TextBlock Text="{Binding FileSize,ElementName=page}"/>
+                <TextBlock Text="{Binding FileSize,ElementName=page}" Margin="0"/>
                 <TextBlock Text="M"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" DataContext="StartPoint">
                 <TextBlock Text="起始点"/>
-                <Button Content="-" Height="30" Width="50" Click="RangeChange_Click"/>
-                <Button Content="+" Height="30" Width="50" Click="RangeChange_Click"/>
+                <Button Content="当前值" Click="RangeChange_Click"/>
+                <Button Content="-" Width="50" Click="RangeChange_Click"/>
+                <Button Content="+" Width="50" Click="RangeChange_Click"/>
                 <ComboBox Name="StartPointComboBox" VerticalAlignment="Center">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -69,8 +75,9 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal" DataContext="EndPoint">
                 <TextBlock Text="结束点"/>
-                <Button Content="-" Height="30" Width="50" Click="RangeChange_Click"/>
-                <Button Content="+" Height="30" Width="50" Click="RangeChange_Click"/>
+                <Button Content="当前值" Click="RangeChange_Click"/>
+                <Button Content="-" Width="50" Click="RangeChange_Click"/>
+                <Button Content="+" Width="50" Click="RangeChange_Click"/>
                 <ComboBox Name="EndPointComboBox"  VerticalAlignment="Center">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>

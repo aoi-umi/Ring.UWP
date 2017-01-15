@@ -48,7 +48,7 @@ namespace Rings.UWP
             MaxThumb.DragCompleted += MaxThumb_DragCompleted;
             MaxThumb.DragDelta += MaxThumb_DragDelta;
             ValueThumb.DragDelta += ValueThumb_DragDelta;
-            ActiveRectangle.Tapped += ActiveRectangle_Tapped;
+            TotalRectangle.Tapped += TotalRectangle_Tapped;
         }
 
         public delegate void RangeBaseValueChangedEventHandler(object sender, RangeBaseValueChangedEventArgs e);
@@ -350,11 +350,13 @@ namespace Rings.UWP
             Canvas.SetZIndex(MaxThumb, 10);
         }
 
-        private void ActiveRectangle_Tapped(object sender, TappedRoutedEventArgs e)
+        private void TotalRectangle_Tapped(object sender, TappedRoutedEventArgs e)
         {
             var point = e.GetPosition(TotalRectangle);
             var value = point.X / TotalRectangle.ActualWidth * (Maximum - Minimum);
-            if (value >= RangeMin && value <= RangeMax) Value = value;
+            if (value > RangeMax) RangeMax = value;
+            else if (value < RangeMin) RangeMin = value;
+            else Value = value;
         }
     }
 
