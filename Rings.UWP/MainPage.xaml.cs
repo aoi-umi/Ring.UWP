@@ -44,7 +44,8 @@ namespace Rings.UWP
                 new TimeModel() {Text = "0.001s", Type = TimeType.Millisecond },
             };
             saveModelList = new List<RingToneSaveModel>() {
-                new RingToneSaveModel() { Text = "保存为铃声" ,Type = RingToneSaveType.SaveAsTone },
+                new RingToneSaveModel() { Text = "选择部分设为铃声" ,Type = RingToneSaveType.SaveAsTone },
+                new RingToneSaveModel() { Text = "设为铃声" ,Type = RingToneSaveType.SaveWholeFileAsTone },
                 new RingToneSaveModel() { Text = "仅保存" ,Type = RingToneSaveType.SaveOnly },
             };
             NoDataTextView.Text = ringRequirement;
@@ -138,6 +139,7 @@ namespace Rings.UWP
         private void MediaEle_MediaOpened(object sender, RoutedEventArgs e)
         {
             RangeSliderView.Maximum = MediaEle.NaturalDuration.TimeSpan.TotalSeconds;
+            ChangeFileSize();
         }
 
         private void RangeSliderView_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
@@ -234,11 +236,10 @@ namespace Rings.UWP
                 Tips = ex.Message;
             }
         }
-        
+
         private void RangeSliderView_RangeValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
-            if (totalFileSize == 0 || RangeSliderView.RangeValue == 0) FileSize = 0;
-            else FileSize = Math.Round(totalFileSize * (RangeSliderView.RangeValue / (RangeSliderView.Maximum - RangeSliderView.Minimum)), 2);
+            ChangeFileSize();
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
@@ -276,77 +277,94 @@ namespace Rings.UWP
         }
         #endregion
 
+        private void ChangeFileSize()
+        {
+            if (totalFileSize == 0 || RangeSliderView.RangeValue == 0) FileSize = 0;
+            else FileSize = Math.Round(totalFileSize * (RangeSliderView.RangeValue / (RangeSliderView.Maximum - RangeSliderView.Minimum)), 2);
+        }
         private async void Save()
         {
+            StorageFile saveFile = null;
             try
             {
                 var file = editingFile;
                 if (file == null) throw new Exception("未选择文件或文件无效");
-                if (RangeSliderView.RangeMin == RangeSliderView.RangeMax) throw new Exception("请选择范围");
-                composition.Clips.Clear();
-                var encodingProfile = await MediaEncodingProfile.CreateFromFileAsync(file);
-                var clip = await MediaClip.CreateFromFileAsync(file);
-                clip.TrimTimeFromStart = TimeSpan.FromSeconds(RangeSliderView.RangeMin);
-                clip.TrimTimeFromEnd = TimeSpan.FromSeconds(RangeSliderView.Maximum - RangeSliderView.RangeMax);
-                composition.Clips.Add(clip);
 
-                var filename = Path.GetFileNameWithoutExtension(file.Name);
-                var ext = Path.GetExtension(file.Name);
-
-                StorageFile saveFile = null;
                 var model = SaveTypeView.SelectedItem as RingToneSaveModel;
                 if (model == null) throw new Exception("请选择保存类型");
                 var saveType = model.Type;
-                switch (saveType)
+
+                if (saveType == RingToneSaveType.SaveWholeFileAsTone)
                 {
-                    case RingToneSaveType.SaveAsTone:
-                        saveFile = await KnownFolders.MusicLibrary.CreateFileAsync(filename + ".rings.uwp" + ext, CreationCollisionOption.ReplaceExisting);
-                        break;
-                    case RingToneSaveType.SaveOnly:
-                        filename += DateTime.Now.ToString("_yyyyMMddHHmmss");
-                        var picker = new FileSavePicker();
-                        picker.SuggestedStartLocation = PickerLocationId.MusicLibrary;
-                        picker.FileTypeChoices.Add("音频文件", new List<string>() { ext });
-                        picker.SuggestedFileName = filename;
-                        saveFile = await picker.PickSaveFileAsync();
-                        break;
-                    default: throw new Exception("没有符合的保存类型");
+                    await SaveAsTone(file);
                 }
-
-                if (saveFile != null)
+                else
                 {
-                    IsSaving = true;
-                    CachedFileManager.DeferUpdates(saveFile);
-                    //empty the file
-                    await FileIO.WriteBytesAsync(saveFile, new byte[] { });
-                    //Save to file using original encoding profile
-                    TranscodeFailureReason result;
-                    if (AnalyticsInfo.VersionInfo.DeviceFamily == "Windows.Desktop")
-                         result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise, encodingProfile);
-                    else
-                        result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise);
+                    if (RangeSliderView.RangeMin == RangeSliderView.RangeMax) throw new Exception("请选择范围");
+                    composition.Clips.Clear();
+                    var encodingProfile = await MediaEncodingProfile.CreateFromFileAsync(file);
+                    //var encodingProfile = MediaEncodingProfile.CreateWav(AudioEncodingQuality.Auto);
+                    var clip = await MediaClip.CreateFromFileAsync(file);
+                    clip.TrimTimeFromStart = TimeSpan.FromSeconds(RangeSliderView.RangeMin);
+                    clip.TrimTimeFromEnd = TimeSpan.FromSeconds(RangeSliderView.Maximum - RangeSliderView.RangeMax);
+                    composition.Clips.Add(clip);
 
-                    if (result == TranscodeFailureReason.None)
+                    var filename = Path.GetFileNameWithoutExtension(file.Name);
+                    var ext = Path.GetExtension(file.Name);
+
+                    switch (saveType)
                     {
-                        switch (saveType)
-                        {
-                            case RingToneSaveType.SaveOnly:
-                                Tips = ("保存成功");
-                                break;
-                            case RingToneSaveType.SaveAsTone:
-                                await SaveAsTone(saveFile);
-                                await saveFile.DeleteAsync();
-                                break;
-                        }
+                        case RingToneSaveType.SaveWholeFileAsTone: break;
+                        case RingToneSaveType.SaveAsTone:
+                            saveFile = await KnownFolders.MusicLibrary.CreateFileAsync(filename + ".rings.uwp" + ext, CreationCollisionOption.ReplaceExisting);
+                            break;
+                        case RingToneSaveType.SaveOnly:
+                            filename += DateTime.Now.ToString("_yyyyMMddHHmmss");
+                            var picker = new FileSavePicker();
+                            picker.SuggestedStartLocation = PickerLocationId.MusicLibrary;
+                            picker.FileTypeChoices.Add("音频文件", new List<string>() { ext });
+                            picker.SuggestedFileName = filename;
+                            saveFile = await picker.PickSaveFileAsync();
+                            break;
+                        default: throw new Exception("没有符合的保存类型");
                     }
-                    else
+
+                    if (saveFile != null)
                     {
-                        Tips = ("保存失败:" + result);
+                        IsSaving = true;
+                        CachedFileManager.DeferUpdates(saveFile);
+                        //empty the file
+                        await FileIO.WriteBytesAsync(saveFile, new byte[] { });
+                        //Save to file using original encoding profile
+                        TranscodeFailureReason result;
+                        if (AnalyticsInfo.VersionInfo.DeviceFamily == "Windows.Desktop")
+                            result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise, encodingProfile);
+                        else
+                            result = await composition.RenderToFileAsync(saveFile, MediaTrimmingPreference.Precise);
+
+                        if (result == TranscodeFailureReason.None)
+                        {
+                            switch (saveType)
+                            {
+                                case RingToneSaveType.SaveOnly:
+                                    Tips = ("保存成功");
+                                    break;
+                                case RingToneSaveType.SaveAsTone:
+                                    await SaveAsTone(saveFile);
+                                    await saveFile.DeleteAsync();
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            Tips = ("保存失败:" + result);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
+                if (saveFile != null) { try { await saveFile.DeleteAsync(); } catch { } }
                 Tips = ex.Message;
             }
             if(IsSaving)
@@ -380,27 +398,34 @@ namespace Rings.UWP
                 if (resultCode == 0)
                 {
                     // no issues
+                    Tips = "设置成功";                   
                 }
                 else
                 {
                     switch (resultCode)
                     {
                         case 2:
+                            ThrowException("The specified file was invalid");
                             // The specified file was invalid
                             break;
                         case 3:
+                            ThrowException("The specified file's content type is invalid");
                             // The specified file's content type is invalid
                             break;
                         case 4:
+                            ThrowException("The specified file was too big");
                             // The specified file was too big
                             break;
                         case 5:
+                            ThrowException("The specified file was too long");
                             // The specified file was too long
                             break;
                         case 6:
+                            ThrowException("The file was protected by DRM");
                             // The file was protected by DRM
                             break;
                         case 7:
+                            ThrowException("The specified parameter was incorrect");
                             // The specified parameter was incorrect
                             break;
                     }
@@ -437,8 +462,14 @@ namespace Rings.UWP
                 }
                 );
         }
+
+        private void ThrowException(string message)
+        {
+            throw new Exception(message);
+        }
     }
 
+    #region model
     public class RingToneSaveModel
     {
         public string Text { get; set; }
@@ -484,7 +515,9 @@ namespace Rings.UWP
     {
         SaveOnly,
         SaveAsTone,
+        SaveWholeFileAsTone,
     }
+    #endregion
 
     #region Converter
     class TimeToSecondsConverter : IValueConverter

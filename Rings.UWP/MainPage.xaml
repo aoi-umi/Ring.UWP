@@ -113,7 +113,7 @@
                 <Button Grid.Column="0" Content="{Binding CurrentState,Converter={StaticResource PlayContentConverter}, ElementName=MediaEle}" 
                     Name="PlayButton" Click="PlayButton_Click"/>
                 <Button Grid.Column="1" Content="重播" Name="ReplayButton" Click="RelayButton_Click"/>
-                <Button Grid.Row="1" Grid.Column="0" Content="保存" Click="Save_Click"/>
+                <Button Grid.Row="1" Grid.Column="0" Content="确定" Click="Save_Click"/>
                 <ComboBox Name="SaveTypeView" Grid.Row="1" Grid.Column="1">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
